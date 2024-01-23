@@ -1,0 +1,4 @@
+app_identifier("com.standyro.SwiftUITodo") # The bundle identifier of your app
+# apple_id("standyro@gmail.com") # Your Apple Developer Portal username
+# itc_team_id("119313842") # App Store Connect Team ID
+# team_id("JT6N86JRPW") # Developer Portal Team ID

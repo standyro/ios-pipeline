@@ -1,0 +1,62 @@
+default_platform(:ios)
+
+platform :ios do
+  desc "Push a new release build to the App Store"
+  lane :sync_certificates do
+    app_store_connect_api_key
+    match(force: true,
+      force_for_new_devices: true)
+  end
+  lane :build do
+    app_target_bundle_identifier = CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier)
+    project = "SwiftUITodo.xcodeproj"
+    keychain_name = "SwiftUITodo"
+
+    delete_keychain(name: "SwiftUITodo") if File.exist? File.expand_path("~/Library/Keychains/#{keychain_name}-db")
+
+    create_keychain(
+      name: keychain_name,
+      default_keychain: true,
+      unlock: true,
+      timeout: 3600,
+      lock_when_sleeps: true
+    )
+
+    match(
+      keychain_name: keychain_name,
+      readonly: true
+    )
+
+    app_target_profile_name = ENV["com.standyro.SwiftUITodo"]
+
+    update_code_signing_settings(
+      use_automatic_signing: false,
+      targets: "SwiftUITodo",
+      profile_name: app_target_profile_name,
+      code_sign_identity: ENV['APP_STORE_CERT_NAME'],
+      path: project
+    )
+
+    output_directory = '.archives'
+    output_name = 'SwiftUITodo.ipa'
+    output_file_path = "#{output_directory}/#{output_name}"
+    
+    gym(
+      project: project,
+      silent: true,
+      clean: true,                             
+      export_method: "app-store",
+      export_options: {
+        provisioningProfiles: { 
+          app_target_bundle_identifier => app_target_profile_name
+        }
+      },
+      output_directory: output_directory,
+      output_name: output_name
+    )
+  end
+  lane :release do
+    build_app(scheme: "SwiftUITodo")
+    upload_to_app_store(skip_metadata: true, skip_screenshots: true)
+  end
+end
